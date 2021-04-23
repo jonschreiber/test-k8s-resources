@@ -1,0 +1,58 @@
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: helloworld-ingress
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: helloworld-deployment
+  namespace: helloworld-ingress
+spec:
+  selector:
+    matchLabels:
+      app: helloworld
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: helloworld
+    spec:
+      containers:
+        - name: helloworld
+          # enter the path to your image, be sure to include the correct region prefix
+          image: iad.ocir.io/ax022wvgmjpq/helloworld:v1
+          ports:
+            - containerPort: 8888
+              protocol: TCP
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: helloworld-svc
+  namespace: helloworld-ingress
+spec:
+  selector:
+    app: helloworld
+  ports:
+    - port: 80
+      targetPort: 8888
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1beta1 
+kind: Ingress
+metadata:
+  name: helloworld-ing
+  namespace: helloworld-ingress
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/rewrite-target: /helloworld/getVersion
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /helloworld
+            pathType: Prefix
+            backend:
+              serviceName: helloworld-svc
+              servicePort: 80
